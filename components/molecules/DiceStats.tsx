@@ -11,7 +11,7 @@ export const DiceStats: React.FC<DiceStatsProps> = ({ history }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>📊 Estadísticas</Text>
+      <Text style={styles.title}>Estadísticas</Text>
       
       <View style={styles.statsRow}>
         <View style={styles.statItem}>

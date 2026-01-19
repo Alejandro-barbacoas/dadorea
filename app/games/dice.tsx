@@ -1,214 +1,162 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { GLView } from 'expo-gl';
-import { Renderer } from 'expo-three';
-import * as THREE from 'three';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Dice3D } from '@/components/molecules/Dice3D';
+import { DiceStats } from '@/components/molecules/DiceStats';
+import { useAccelerometer } from '@/lib/modules/sensors/accelerometer/useAccelerometer';
+import * as Haptics from 'expo-haptics';
 
-type Dice3DProps = {
-  isRolling: boolean;
-  onRollComplete?: (result: number) => void;
-  accelerometerData: { x: number; y: number; z: number };
-};
-
-export const Dice3D: React.FC<Dice3DProps> = ({ 
-  isRolling, 
-  onRollComplete,
-  accelerometerData 
-}) => {
+export default function DiceScreen() {
+  const [isRolling, setIsRolling] = useState(false);
   const [result, setResult] = useState<number | null>(null);
-  const requestIdRef = useRef<number>();
-  const sceneRef = useRef<THREE.Scene>();
-  const cameraRef = useRef<THREE.PerspectiveCamera>();
-  const rendererRef = useRef<Renderer>();
-  const diceRef = useRef<THREE.Mesh>();
-  const rotationVelocityRef = useRef({ x: 0, y: 0, z: 0 });
-  const isRollingRef = useRef(false);
+  const [history, setHistory] = useState<number[]>([]);
+  const { x, y, z, isShaking } = useAccelerometer();
 
-  const createDiceGeometry = () => {
-    const geometry = new THREE.BoxGeometry(2, 2, 2);
-    
-    // Crear materiales con números para cada cara
-    const materials = [
-      createFaceMaterial('1'), // cara 1
-      createFaceMaterial('6'), // cara 6 (opuesta a 1)
-      createFaceMaterial('2'), // cara 2
-      createFaceMaterial('5'), // cara 5 (opuesta a 2)
-      createFaceMaterial('3'), // cara 3
-      createFaceMaterial('4'), // cara 4 (opuesta a 3)
-    ];
+  useEffect(() => {
+    if (isShaking && !isRolling) {
+      handleRollDice();
+    }
+  }, [isShaking, isRolling]);
 
-    return { geometry, materials };
-  };
-
-  const createFaceMaterial = (number: string) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const context = canvas.getContext('2d')!;
-
-    // Fondo blanco
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, 256, 256);
-
-    // Borde negro
-    context.strokeStyle = '#000000';
-    context.lineWidth = 4;
-    context.strokeRect(0, 0, 256, 256);
-
-    // Número negro
-    context.fillStyle = '#000000';
-    context.font = 'bold 120px Arial';
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.fillText(number, 128, 128);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    return new THREE.MeshStandardMaterial({ map: texture });
-  };
-
-  const startRolling = () => {
-    if (!diceRef.current) return;
-    
-    isRollingRef.current = true;
+  const handleRollDice = () => {
+    setIsRolling(true);
     setResult(null);
-
-    // Velocidad de rotación aleatoria
-    rotationVelocityRef.current = {
-      x: (Math.random() - 0.5) * 0.3,
-      y: (Math.random() - 0.5) * 0.3,
-      z: (Math.random() - 0.5) * 0.3,
-    };
-
-    // Detener después de 2 segundos
-    setTimeout(() => {
-      stopRolling();
-    }, 2000);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
-  const stopRolling = () => {
-    isRollingRef.current = false;
-    
-    // Calcular el resultado basado en la rotación final
-    const finalResult = Math.floor(Math.random() * 6) + 1;
-    setResult(finalResult);
-    
-    if (onRollComplete) {
-      onRollComplete(finalResult);
-    }
-
-    // Animar hacia la posición final
-    animateToFinalPosition(finalResult);
+  const handleRollComplete = (diceResult: number) => {
+    setIsRolling(false);
+    setResult(diceResult);
+    setHistory(prev => [diceResult, ...prev.slice(0, 9)]);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  const animateToFinalPosition = (faceNumber: number) => {
-    if (!diceRef.current) return;
+  return (
+    <View style={styles.container}>
+      {/* Dado 3D */}
+      <View style={styles.diceContainer}>
+        <Dice3D
+          isRolling={isRolling}
+          onRollComplete={handleRollComplete}
+          accelerometerData={{ x, y, z }}
+        />
+      </View>
 
-    // Rotaciones para mostrar cada cara hacia arriba
-    const faceRotations: { [key: number]: { x: number; y: number; z: number } } = {
-      1: { x: 0, y: 0, z: 0 },
-      6: { x: Math.PI, y: 0, z: 0 },
-      2: { x: 0, y: 0, z: -Math.PI / 2 },
-      5: { x: 0, y: 0, z: Math.PI / 2 },
-      3: { x: -Math.PI / 2, y: 0, z: 0 },
-      4: { x: Math.PI / 2, y: 0, z: 0 },
-    };
+      {/* Resultado */}
+      <View style={styles.resultContainer}>
+        {result !== null && !isRolling && (
+          <>
+            <Text style={styles.resultLabel}>Resultado:</Text>
+            <Text style={styles.resultNumber}>{result}</Text>
+          </>
+        )}
+        {isRolling && (
+          <Text style={styles.rollingText}>Lanzando...</Text>
+        )}
+      </View>
 
-    const targetRotation = faceRotations[faceNumber];
-    
-    // Smooth transition to final rotation
-    const smoothRotate = () => {
-      if (!diceRef.current) return;
+      {/* Botón de lanzar */}
+      <TouchableOpacity
+        style={[styles.rollButton, isRolling && styles.rollButtonDisabled]}
+        onPress={handleRollDice}
+        disabled={isRolling}
+      >
+        <Text style={styles.rollButtonText}>
+          {isRolling ? '🎲 Rodando...' : '🎲 Lanzar Dado'}
+        </Text>
+      </TouchableOpacity>
 
-      diceRef.current.rotation.x += (targetRotation.x - diceRef.current.rotation.x) * 0.1;
-      diceRef.current.rotation.y += (targetRotation.y - diceRef.current.rotation.y) * 0.1;
-      diceRef.current.rotation.z += (targetRotation.z - diceRef.current.rotation.z) * 0.1;
+      {/* Instrucciones */}
+      <Text style={styles.instructions}>
+        💡 Sacude el teléfono para lanzar
+      </Text>
 
-      const distance = Math.abs(targetRotation.x - diceRef.current.rotation.x) +
-                       Math.abs(targetRotation.y - diceRef.current.rotation.y) +
-                       Math.abs(targetRotation.z - diceRef.current.rotation.z);
+      {/* Estadísticas */}
+      <DiceStats history={history} />
 
-      if (distance > 0.01) {
-        requestAnimationFrame(smoothRotate);
-      }
-    };
+      {/* Debug info */}
+      <View style={styles.debugContainer}>
+        <Text style={styles.debugText}>
+          Acelerómetro: X:{x.toFixed(2)} Y:{y.toFixed(2)} Z:{z.toFixed(2)}
+        </Text>
+        <Text style={styles.debugText}>
+          {isShaking ? '🔴 Sacudiendo' : '🟢 Quieto'}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
-    smoothRotate();
-  };
-
-  useEffect(() => {
-    if (isRolling && !isRollingRef.current) {
-      startRolling();
-    }
-  }, [isRolling]);
-
-  const onContextCreate = async (gl: any) => {
-    // Configurar renderer
-    const renderer = new Renderer({ gl });
-    rendererRef.current = renderer;
-    renderer.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
-
-    // Crear escena
-    const scene = new THREE.Scene();
-    sceneRef.current = scene;
-    scene.background = new THREE.Color(0x1a1a1a);
-
-    // Crear cámara
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      gl.drawingBufferWidth / gl.drawingBufferHeight,
-      0.1,
-      1000
-    );
-    cameraRef.current = camera;
-    camera.position.z = 5;
-
-    // Crear dado
-    const { geometry, materials } = createDiceGeometry();
-    const dice = new THREE.Mesh(geometry, materials);
-    diceRef.current = dice;
-    scene.add(dice);
-
-    // Iluminación
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 5, 5);
-    scene.add(directionalLight);
-
-    // Loop de animación
-    const animate = () => {
-      requestIdRef.current = requestAnimationFrame(animate);
-
-      if (diceRef.current && isRollingRef.current) {
-        // Aplicar velocidad de rotación
-        diceRef.current.rotation.x += rotationVelocityRef.current.x;
-        diceRef.current.rotation.y += rotationVelocityRef.current.y;
-        diceRef.current.rotation.z += rotationVelocityRef.current.z;
-
-        // Fricción (desaceleración gradual)
-        rotationVelocityRef.current.x *= 0.98;
-        rotationVelocityRef.current.y *= 0.98;
-        rotationVelocityRef.current.z *= 0.98;
-      } else if (diceRef.current) {
-        // Rotación suave por el acelerómetro cuando no está rodando
-        diceRef.current.rotation.x += accelerometerData.y * 0.01;
-        diceRef.current.rotation.y += accelerometerData.x * 0.01;
-      }
-
-      renderer.render(scene, camera);
-      gl.endFrameEXP();
-    };
-
-    animate();
-  };
-
-  useEffect(() => {
-    return () => {
-      if (requestIdRef.current) {
-        cancelAnimationFrame(requestIdRef.current);
-      }
-    };
-  }, []);
-
-  return <GLView style={{ flex: 1 }} onContextCreate={onContextCreate} />;
-};
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
+    padding: 20,
+  },
+  diceContainer: {
+    flex: 1,
+    marginTop: 40,
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#333',
+  },
+  resultContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+    minHeight: 80,
+    justifyContent: 'center',
+  },
+  resultLabel: {
+    fontSize: 24,
+    color: '#888',
+    marginBottom: 8,
+  },
+  resultNumber: {
+    fontSize: 72,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  rollingText: {
+    fontSize: 28,
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  rollButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  rollButtonDisabled: {
+    backgroundColor: '#666',
+  },
+  rollButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  instructions: {
+    textAlign: 'center',
+    color: '#888',
+    fontSize: 16,
+    marginTop: 10,
+    fontStyle: 'italic',
+  },
+  debugContainer: {
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  debugText: {
+    color: '#666',
+    fontSize: 12,
+    fontFamily: 'monospace',
+    textAlign: 'center',
+  },
+});
