@@ -61,7 +61,7 @@ export default function DiceScreen() {
         disabled={isRolling}
       >
         <Text style={styles.rollButtonText}>
-          {isRolling ? '🎲 Rodando...' : '🎲 Lanzar Dado'}
+          {isRolling ? 'Rodando...' : 'Lanzar Dado'}
         </Text>
       </TouchableOpacity>
 
@@ -79,7 +79,7 @@ export default function DiceScreen() {
           Acelerómetro: X:{x.toFixed(2)} Y:{y.toFixed(2)} Z:{z.toFixed(2)}
         </Text>
         <Text style={styles.debugText}>
-          {isShaking ? '🔴 Sacudiendo' : '🟢 Quieto'}
+          {isShaking ? 'Sacudiendo' : 'Quieto'}
         </Text>
       </View>
     </View>
