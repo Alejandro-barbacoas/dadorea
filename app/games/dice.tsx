@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, ScrollView, Switch, TouchableOpacity } from 'react-native';
 import { Dice3D } from '@/components/molecules/Dice3D';
 import { DiceStats } from '@/components/molecules/DiceStats';
 import { useAccelerometer } from '@/lib/modules/sensors/accelerometer/useAccelerometer';
 import * as Haptics from 'expo-haptics';
+import { styles } from './dice.styles'; // Importa los estilos
 
 export default function DiceScreen() {
   const [isRolling, setIsRolling] = useState(false);
   const [result, setResult] = useState<number | null>(null);
   const [history, setHistory] = useState<number[]>([]);
   const { x, y, z, isShaking } = useAccelerometer();
+  const [isFreeMode, setIsFreeMode] = useState(false);
 
   useEffect(() => {
-    if (isShaking && !isRolling) {
+    if (!isFreeMode && isShaking && !isRolling) {
       handleRollDice();
     }
-  }, [isShaking, isRolling]);
+  }, [isShaking, isRolling, isFreeMode]);
 
   const handleRollDice = () => {
     setIsRolling(true);
@@ -37,8 +39,18 @@ export default function DiceScreen() {
         <Dice3D
           isRolling={isRolling}
           onRollComplete={handleRollComplete}
-          accelerometerData={{ x, y, z }}
+          accelerometerData={isFreeMode ? { x, y, z } : { x: 0, y: 0, z: 0 }}
         />
+        <View style={styles.freeModeContainer}>
+          <Text style={styles.freeModeText}>Modo Libre</Text>
+          <Switch
+            trackColor={{ false: "#767577", true: "#4CAF50" }}
+            thumbColor={isFreeMode ? "#f5dd4b" : "#f4f3f4"}
+            ios_backgroundColor="#3e3e3e"
+            onValueChange={() => setIsFreeMode(previousState => !previousState)}
+            value={isFreeMode}
+          />
+        </View>
       </View>
 
       {/* Resultado */}
@@ -49,9 +61,7 @@ export default function DiceScreen() {
             <Text style={styles.resultNumber}>{result}</Text>
           </>
         )}
-        {isRolling && (
-          <Text style={styles.rollingText}>Lanzando...</Text>
-        )}
+        {isRolling && <Text style={styles.rollingText}>Lanzando...</Text>}
       </View>
 
       {/* Botón de lanzar */}
@@ -85,81 +95,3 @@ export default function DiceScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-    backgroundColor: '#0a0a0a',
-  },
-  container: {
-    padding: 20,
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  diceContainer: {
-    height: 300,
-    marginTop: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#333',
-  },
-  resultContainer: {
-    alignItems: 'center',
-    marginVertical: 20,
-    minHeight: 80,
-    justifyContent: 'center',
-  },
-  resultLabel: {
-    fontSize: 24,
-    color: '#888',
-    marginBottom: 8,
-  },
-  resultNumber: {
-    fontSize: 72,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  rollingText: {
-    fontSize: 28,
-    color: '#4CAF50',
-    fontWeight: '600',
-  },
-  rollButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  rollButtonDisabled: {
-    backgroundColor: '#666',
-  },
-  rollButtonText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  instructions: {
-    textAlign: 'center',
-    color: '#888',
-    fontSize: 16,
-    marginTop: 10,
-    fontStyle: 'italic',
-  },
-  debugContainer: {
-    marginTop: 20,
-    padding: 12,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  debugText: {
-    color: '#666',
-    fontSize: 12,
-    fontFamily: 'monospace',
-    textAlign: 'center',
-  },
-});

@@ -10,7 +10,7 @@ import { DICE_SIZE } from '@/lib/core/logic/constants';
 type Dice3DProps = {
   isRolling: boolean;
   onRollComplete?: (result: number) => void;
-  accelerometerData: { x: number; y: number; z: number };
+  accelerometerData: { x: number; y: number; z: number } | null;
 };
 
 export const Dice3D: React.FC<Dice3DProps> = ({ 
@@ -24,10 +24,8 @@ export const Dice3D: React.FC<Dice3DProps> = ({
   const sceneRef = useRef<THREE.Scene>();
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   
-  // Ref to hold the latest accelerometer data
   const accelerometerDataRef = useRef(accelerometerData);
 
-  // Update the ref whenever the prop changes
   useEffect(() => {
     accelerometerDataRef.current = accelerometerData;
   }, [accelerometerData]);
@@ -77,10 +75,11 @@ export const Dice3D: React.FC<Dice3DProps> = ({
     const animate = () => {
       requestIdRef.current = requestAnimationFrame(animate);
 
+      // Animación de lanzamiento
       updateRotation();
 
-      // Use the ref to get the latest accelerometer data
-      if (diceRef.current && !isRollingRef.current) {
+      // Movimiento libre (solo si no se está lanzando y hay datos)
+      if (diceRef.current && !isRollingRef.current && accelerometerDataRef.current) {
         diceRef.current.rotation.x += accelerometerDataRef.current.y * 0.01;
         diceRef.current.rotation.y += accelerometerDataRef.current.x * 0.01;
       }
