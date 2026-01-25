@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { isShaking } from '../../../core/logic/motion';
 import { SensorService } from './acelerometer.sevice';
-import { isShaking } from '../../../core/motion';
 
 type AccelerometerData = {
   x: number;

@@ -23,6 +23,14 @@ export const Dice3D: React.FC<Dice3DProps> = ({
   const rendererRef = useRef<Renderer>();
   const sceneRef = useRef<THREE.Scene>();
   const cameraRef = useRef<THREE.PerspectiveCamera>();
+  
+  // Ref to hold the latest accelerometer data
+  const accelerometerDataRef = useRef(accelerometerData);
+
+  // Update the ref whenever the prop changes
+  useEffect(() => {
+    accelerometerDataRef.current = accelerometerData;
+  }, [accelerometerData]);
 
   const { startRolling, updateRotation, isRolling: isRollingRef } = useDiceAnimation(
     diceRef,
@@ -71,9 +79,10 @@ export const Dice3D: React.FC<Dice3DProps> = ({
 
       updateRotation();
 
+      // Use the ref to get the latest accelerometer data
       if (diceRef.current && !isRollingRef.current) {
-        diceRef.current.rotation.x += accelerometerData.y * 0.01;
-        diceRef.current.rotation.y += accelerometerData.x * 0.01;
+        diceRef.current.rotation.x += accelerometerDataRef.current.y * 0.01;
+        diceRef.current.rotation.y += accelerometerDataRef.current.x * 0.01;
       }
 
       renderer.render(scene, camera);

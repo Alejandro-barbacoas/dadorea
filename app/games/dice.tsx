@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Dice3D } from '@/components/molecules/Dice3D';
 import { DiceStats } from '@/components/molecules/DiceStats';
 import { useAccelerometer } from '@/lib/modules/sensors/accelerometer/useAccelerometer';
@@ -31,7 +31,7 @@ export default function DiceScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.scrollView} contentContainerStyle={styles.container}>
       {/* Dado 3D */}
       <View style={styles.diceContainer}>
         <Dice3D
@@ -82,20 +82,23 @@ export default function DiceScreen() {
           {isShaking ? 'Sacudiendo' : 'Quieto'}
         </Text>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
     backgroundColor: '#0a0a0a',
+  },
+  container: {
     padding: 20,
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   diceContainer: {
-    flex: 1,
+    height: 300,
     marginTop: 40,
-    marginBottom: 20,
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 2,
