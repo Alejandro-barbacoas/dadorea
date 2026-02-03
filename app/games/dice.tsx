@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Switch, TouchableOpacity } from 'react-native';
 import { Dice3D } from '@/components/molecules/Dice3D';
-import { DiceStats } from '@/components/molecules/DiceStats';
 import { useAccelerometer } from '@/lib/modules/sensors/accelerometer/useAccelerometer';
 import * as Haptics from 'expo-haptics';
-import { styles } from './dice.styles'; // Importa los estilos
+import { styles } from './dice.styles';
 
 export default function DiceScreen() {
   const [isRolling, setIsRolling] = useState(false);
   const [result, setResult] = useState<number | null>(null);
-  const [history, setHistory] = useState<number[]>([]);
   const { x, y, z, isShaking } = useAccelerometer();
   const [isFreeMode, setIsFreeMode] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   useEffect(() => {
     if (!isFreeMode && isShaking && !isRolling) {
@@ -28,12 +27,31 @@ export default function DiceScreen() {
   const handleRollComplete = (diceResult: number) => {
     setIsRolling(false);
     setResult(diceResult);
-    setHistory(prev => [diceResult, ...prev.slice(0, 9)]);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   return (
-    <ScrollView style={styles.scrollView} contentContainerStyle={styles.container}>
+    <View style={styles.container}> // Volvemos a un View para controlar la posición del icono
+      {/* Icono de Información */}
+      <TouchableOpacity 
+        style={styles.infoIconContainer} 
+        onPress={() => setShowInfo(!showInfo)}
+      >
+        <Text style={styles.infoIconText}>i</Text>
+      </TouchableOpacity>
+
+      {/* Contenedor de info del acelerometro */}
+      {showInfo && (
+        <View style={styles.infoContainer}>
+          <Text style={styles.debugText}>
+            Acelerómetro: X:{x.toFixed(2)} Y:{y.toFixed(2)} Z:{z.toFixed(2)}
+          </Text>
+          <Text style={styles.debugText}>
+            {isShaking ? 'Sacudiendo' : 'Quieto'}
+          </Text>
+        </View>
+      )}
+
       {/* Dado 3D */}
       <View style={styles.diceContainer}>
         <Dice3D
@@ -74,24 +92,7 @@ export default function DiceScreen() {
           {isRolling ? 'Rodando...' : 'Lanzar Dado'}
         </Text>
       </TouchableOpacity>
-
-      {/* Instrucciones */}
-      <Text style={styles.instructions}>
-        💡 Sacude el teléfono para lanzar
-      </Text>
-
-      {/* Estadísticas */}
-      <DiceStats history={history} />
-
-      {/* Debug info */}
-      <View style={styles.debugContainer}>
-        <Text style={styles.debugText}>
-          Acelerómetro: X:{x.toFixed(2)} Y:{y.toFixed(2)} Z:{z.toFixed(2)}
-        </Text>
-        <Text style={styles.debugText}>
-          {isShaking ? 'Sacudiendo' : 'Quieto'}
-        </Text>
-      </View>
-    </ScrollView>
+      {/* Ya no estan las instrucciones ni el debug info aca abajo */}
+    </View>
   );
 }

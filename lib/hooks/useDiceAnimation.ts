@@ -46,7 +46,7 @@ export const useDiceAnimation = (
     isRollingRef.current = true;
     rollResultRef.current = rollDice();
     
-    // Velocidad inicial más fuerte para giros dramáticos
+    //velocidad inicial más fuerte para giros mas brusco
     rotationVelocityRef.current = {
       x: (Math.random() - 0.5) * 0.5,
       y: (Math.random() - 0.5) * 0.5,
@@ -70,12 +70,12 @@ export const useDiceAnimation = (
     if (!diceRef.current) return;
 
     if (isRollingRef.current) {
-      // Aplicar rotación
+      //aplicarle la rotacion
       diceRef.current.rotation.x += rotationVelocityRef.current.x;
       diceRef.current.rotation.y += rotationVelocityRef.current.y;
       diceRef.current.rotation.z += rotationVelocityRef.current.z;
 
-      // Desaceleración progresiva (más realista)
+      //desaceleracion progresiva
       const friction = 0.97;
       rotationVelocityRef.current.x *= friction;
       rotationVelocityRef.current.y *= friction;
